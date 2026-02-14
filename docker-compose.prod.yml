@@ -1,0 +1,237 @@
+"""
+Production-grade docker-compose configuration with staging environment.
+Includes monitoring, logging, and backup strategies.
+"""
+
+version: '3.8'
+
+services:
+  # Production Backend
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+    container_name: pharmarec-backend-prod
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://pharmarec:${DB_PASSWORD}@postgres:5432/pharmarec_prod
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_ORIGINS=https://pharmarec.ai,https://www.pharmarec.ai
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pharmarec-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    expose:
+      - "8000"
+    labels:
+      - "com.pharmarec.service=backend"
+
+  # Production Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL=https://api.pharmarec.ai
+    container_name: pharmarec-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.pharmarec.ai}
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - pharmarec-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.pharmarec.service=frontend"
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: pharmarec-db-prod
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=pharmarec
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=pharmarec_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - pharmarec-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pharmarec"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.pharmarec.service=database"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pharmarec-cache-prod
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - pharmarec-prod
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.pharmarec.service=cache"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: pharmarec-proxy-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - pharmarec-prod
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.pharmarec.service=proxy"
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pharmarec-prometheus-prod
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - pharmarec-prod
+    expose:
+      - "9090"
+    labels:
+      - "com.pharmarec.service=monitoring"
+
+  # Grafana Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pharmarec-grafana-prod
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - pharmarec-prod
+    expose:
+      - "3001"
+    labels:
+      - "com.pharmarec.service=dashboards"
+
+  # ELK Stack - Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.0
+    container_name: pharmarec-elasticsearch-prod
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - pharmarec-prod
+    expose:
+      - "9200"
+    labels:
+      - "com.pharmarec.service=logging"
+
+  # ELK Stack - Logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.10.0
+    container_name: pharmarec-logstash-prod
+    restart: unless-stopped
+    volumes:
+      - ./infra/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - pharmarec-prod
+    labels:
+      - "com.pharmarec.service=logging"
+
+  # ELK Stack - Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.0
+    container_name: pharmarec-kibana-prod
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - pharmarec-prod
+    expose:
+      - "5601"
+    labels:
+      - "com.pharmarec.service=logging"
+
+networks:
+  pharmarec-prod:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  nginx_cache:
+    driver: local

@@ -1,0 +1,62 @@
+"""
+Dependency management workflow for checking outdated packages and vulnerabilities.
+"""
+
+name: Dependency Check
+
+on:
+  schedule:
+    # Run every Monday at 9 AM
+    - cron: '0 9 * * 1'
+  pull_request:
+    paths:
+      - 'requirements.txt'
+      - 'frontend/package.json'
+
+jobs:
+  check-python-deps:
+    name: Check Python Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Check for outdated packages
+      run: |
+        pip install --upgrade pip
+        pip install safety
+        safety check --json > safety-report.json || true
+        cat safety-report.json
+    
+    - name: Upload report
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-deps-report
+        path: safety-report.json
+
+  check-node-deps:
+    name: Check Node Dependenc ies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Check for vulnerabilities
+      working-directory: frontend
+      run: |
+        npm audit --production || true
+    
+    - name: Check for outdated packages
+      working-directory: frontend
+      run: |
+        npm outdated || true
