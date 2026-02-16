@@ -38,7 +38,7 @@ def seed_database():
             is_active=True
         )
         db.add(test_user)
-        logger.info("✅ Created demo user: demo@pharmacy.com")
+        logger.info(" Created demo user: demo@pharmacy.com")
 
         # Create sample medicines
         medicines = [
@@ -96,7 +96,7 @@ def seed_database():
 
         for med in medicines:
             db.add(med)
-        logger.info(f"✅ Created {len(medicines)} sample medicines")
+        logger.info(f" Created {len(medicines)} sample medicines")
 
         # Create sample sales
         base_date = datetime.utcnow()
@@ -136,21 +136,21 @@ def seed_database():
 
         for sale in sales:
             db.add(sale)
-        logger.info(f"✅ Created {len(sales)} sample sales records")
+        logger.info(f" Created {len(sales)} sample sales records")
 
         # Commit all
         db.commit()
-        logger.info("✅ Database seeded successfully")
+        logger.info(" Database seeded successfully")
 
     except Exception as e:
         db.rollback()
-        logger.error(f"❌ Error seeding database: {e}")
+        logger.error(f" Error seeding database: {e}")
         raise
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    print("🌱 Seeding PharmaRec AI database...")
+    print(" Seeding PharmaRec AI database...")
     seed_database()
-    print("✅ Done! Login with: demo@pharmacy.com / demo123456")
+    print(" Done! Login with: demo@pharmacy.com / demo123456")

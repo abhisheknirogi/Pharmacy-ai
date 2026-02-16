@@ -96,7 +96,7 @@ export default function DashboardPage() {
 
       {/* Critical Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card title="🚨 Critical Reorders" description="Medicines with critically low stock">
+        <Card title=" Critical Reorders" description="Medicines with critically low stock">
           {reorderLoading ? (
             <p>Loading...</p>
           ) : reorderData?.data && reorderData.data.length > 0 ? (
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           )}
         </Card>
 
-        <Card title="📊 Quick Links">
+        <Card title=" Quick Links">
           <div className="space-y-3">
             <a href="/inventory" className="block p-3 rounded border border-gray-200 hover:bg-blue-50 transition-colors">
               <p className="font-semibold text-blue-600">Manage Inventory</p>

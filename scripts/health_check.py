@@ -11,7 +11,7 @@ import importlib.util
 
 def check_python_packages():
     """Check if all required Python packages are installed."""
-    print("\n📦 Checking Python packages...")
+    print("\n Checking Python packages...")
     required_packages = [
         "fastapi",
         "uvicorn",
@@ -30,9 +30,9 @@ def check_python_packages():
     for package in required_packages:
         try:
             importlib.import_module(package)
-            print(f"  ✅ {package}")
+            print(f"   {package}")
         except ImportError:
-            print(f"  ❌ {package} (missing)")
+            print(f"   {package} (missing)")
             missing.append(package)
 
     return missing
@@ -40,14 +40,14 @@ def check_python_packages():
 
 def check_node_packages():
     """Check if Node.js and npm are installed."""
-    print("\n📱 Checking Node.js packages...")
+    print("\n Checking Node.js packages...")
     try:
         result = subprocess.run(["npm", "--version"], capture_output=True, text=True)
         npm_version = result.stdout.strip()
-        print(f"  ✅ npm {npm_version}")
+        print(f"   npm {npm_version}")
         return True
     except FileNotFoundError:
-        print(f"  ❌ npm not found")
+        print(f"   npm not found")
         return False
 
 
@@ -72,9 +72,9 @@ def check_directories():
     missing = []
     for dir_path in required_dirs:
         if os.path.isdir(dir_path):
-            print(f"  ✅ {dir_path}/")
+            print(f"   {dir_path}/")
         else:
-            print(f"  ❌ {dir_path}/ (missing)")
+            print(f"   {dir_path}/ (missing)")
             missing.append(dir_path)
 
     return missing
@@ -82,7 +82,7 @@ def check_directories():
 
 def check_files():
     """Check if all required files exist."""
-    print("\n📄 Checking critical files...")
+    print("\n Checking critical files...")
     required_files = [
         "requirements.txt",
         ".env.example",
@@ -102,9 +102,9 @@ def check_files():
     missing = []
     for file_path in required_files:
         if os.path.isfile(file_path):
-            print(f"  ✅ {file_path}")
+            print(f"   {file_path}")
         else:
-            print(f"  ❌ {file_path} (missing)")
+            print(f"   {file_path} (missing)")
             missing.append(file_path)
 
     return missing
@@ -112,11 +112,11 @@ def check_files():
 
 def main():
     """Run all health checks."""
-    print("🏥 PharmaRec AI - Health Check")
+    print(" PharmaRec AI - Health Check")
     print("=" * 50)
 
     # Check Python
-    print("\n🐍 Python Information")
+    print("\n Python Information")
     print(f"  Version: {sys.version}")
     print(f"  Executable: {sys.executable}")
 
@@ -134,7 +134,7 @@ def main():
 
     # Summary
     print("\n" + "=" * 50)
-    print("📋 Summary")
+    print(" Summary")
     print("=" * 50)
 
     issues = len(missing_packages) + len(missing_dirs) + len(missing_files)
@@ -142,14 +142,14 @@ def main():
         issues += 1
 
     if issues == 0:
-        print("✅ All checks passed! Your environment is ready.")
-        print("\n🚀 Next steps:")
+        print(" All checks passed! Your environment is ready.")
+        print("\n Next steps:")
         print("  1. Run: make setup")
         print("  2. Run: make dev")
         print("  3. Open: http://localhost:3000")
         return 0
     else:
-        print(f"⚠️ Found {issues} issue(s):")
+        print(f" Found {issues} issue(s):")
         if missing_packages:
             print(f"\n  Missing Python packages ({len(missing_packages)}):")
             for pkg in missing_packages:

@@ -21,7 +21,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-8">
             <Link href={isAuthenticated ? '/dashboard' : '/'} className="flex items-center">
-              <div className="text-xl font-bold text-blue-600">💊 PharmaRec AI</div>
+              <div className="text-xl font-bold text-blue-600"> PharmaRec AI</div>
             </Link>
 
             {isAuthenticated && (
