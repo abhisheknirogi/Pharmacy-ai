@@ -89,11 +89,17 @@ def health_check():
 
 
 # Include routers
-app.include_router(auth.router, prefix="/api", tags=["Auth"])
-app.include_router(inventory.router, prefix="/api", tags=["Inventory"])
-app.include_router(sales.router, prefix="/api", tags=["Sales"])
-app.include_router(reorder.router, prefix="/api", tags=["Reorder"])
-app.include_router(pdf_parser.router, prefix="/api", tags=["PDF Parser"])
+app.include_router(auth.router, tags=["Auth"])
+app.include_router(inventory.router, tags=["Inventory"])
+app.include_router(sales.router, tags=["Sales"])
+app.include_router(reorder.router, tags=["Reorder"])
+app.include_router(pdf_parser.router, tags=["PDF Parser"])
+# Simple preview UI to exercise backend + AI endpoints without Next.js
+try:
+    from .api.routes import preview
+    app.include_router(preview.router)
+except Exception:
+    logger.debug("Preview router not available")
 
 # Version and info endpoints
 @app.get("/version")
@@ -136,7 +142,7 @@ def get_diagnostics():
         }
 
 
-logger.info(f"✅ {settings.APP_NAME} v{settings.APP_VERSION} FastAPI app initialized")
-logger.info(f"📚 OpenAPI docs available at: /docs")
+logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} FastAPI app initialized")
+logger.info("OpenAPI docs available at: /docs")
 if settings.DEBUG:
-    logger.warning("⚠️  DEBUG MODE ENABLED - Do not use in production!")
+    logger.warning("DEBUG MODE ENABLED - Do not use in production!")

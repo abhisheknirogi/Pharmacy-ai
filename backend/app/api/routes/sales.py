@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status,
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
-from ..database import get_db
+from ...database import get_db
 from ...models.sales import Sale
 from ...models.medicine import Medicine
 from ...schemas.sales import SaleCreate, SaleResponse, SaleSummary

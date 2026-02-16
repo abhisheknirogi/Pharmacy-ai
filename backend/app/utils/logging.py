@@ -13,9 +13,14 @@ def setup_logging(name: str, level=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
-    # Console handler
+    # Console handler (force UTF-8 where supported to avoid encoding errors)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
+    try:
+        # reconfigure stream encoding if available (Python 3.7+)
+        console_handler.stream.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
     console_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
-from ..database import get_db
+from ...database import get_db
 from ...models.medicine import Medicine
 from ...schemas.medicine import MedicineCreate, MedicineResponse, MedicineUpdate
 

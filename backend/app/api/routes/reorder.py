@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from ..database import get_db
+from ...database import get_db
 from ...services.reorder_engine import generate_reorder_list
 from ...ml_client.reorder_predictor import predict_reorder_quantity
 

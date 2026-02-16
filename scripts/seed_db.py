@@ -8,7 +8,14 @@ from backend.app.database import SessionLocal, init_db
 from backend.app.models.medicine import Medicine
 from backend.app.models.sales import Sale
 from backend.app.models.users import User
-from backend.app.api.routes.auth import hash_password
+from passlib.context import CryptContext
+
+# Local password hasher to avoid importing route modules (which pull heavy deps)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
 from datetime import datetime, timedelta
 import logging
 
