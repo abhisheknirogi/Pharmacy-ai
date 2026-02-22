@@ -1,6 +1,51 @@
+# Dependencies
 node_modules/
+__pycache__/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
 .env
+.env.local
+.env.*.local
+
+# Build and dist
 dist/
 build/
 coverage/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+
+# Cache and temporary files
+.pytest_cache/
+.mypy_cache/
+.turbo/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
 .DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.jupyter_checkpoints/
+*.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
