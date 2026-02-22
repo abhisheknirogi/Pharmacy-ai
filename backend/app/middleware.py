@@ -1,15 +1,17 @@
 """
 Middleware for PharmaRec API.
-Includes error handling, request logging, security headers, and monitoring.
+Includes error handling, request logging, security headers, request validation, and monitoring.
 """
 
 import logging
 import time
-from typing import Callable
+import json
+from typing import Callable, Dict, Any
 from uuid import uuid4
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
@@ -28,11 +30,32 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             request.state.request_id = str(uuid4())
             response = await call_next(request)
             return response
+        except RequestValidationError as exc:
+            request_id = request.state.request_id if hasattr(request.state, 'request_id') else str(uuid4())
+            logger.warning(
+                f"Validation error: {exc.error_count()} validation error(s)",
+                extra={
+                    "request_id": request_id,
+                    "path": request.url.path,
+                    "method": request.method,
+                    "error_count": exc.error_count(),
+                }
+            )
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": "VALIDATION_ERROR",
+                    "message": "Request validation failed",
+                    "request_id": request_id,
+                    "details": exc.errors(),
+                },
+            )
         except PharmaRecException as exc:
+            request_id = request.state.request_id if hasattr(request.state, 'request_id') else str(uuid4())
             logger.warning(
                 f"PharmaRec exception: {exc.error_code}",
                 extra={
-                    "request_id": request.state.request_id if hasattr(request.state, 'request_id') else None,
+                    "request_id": request_id,
                     "path": request.url.path,
                     "method": request.method,
                     "error_code": exc.error_code,
@@ -41,37 +64,43 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
             return JSONResponse(
                 status_code=exc.status_code,
-                content=exc.dict(),
+                content=exc.dict() | {"request_id": request_id},
             )
         except Exception as exc:
-            # Log unexpected exceptions
+            # Log unexpected exceptions with full traceback
+            request_id = request.state.request_id if hasattr(request.state, 'request_id') else str(uuid4())
             logger.error(
-                f"Unexpected exception: {str(exc)}",
+                f"Unexpected exception: {type(exc).__name__}: {str(exc)}",
                 exc_info=True,
                 extra={
-                    "request_id": request.state.request_id if hasattr(request.state, 'request_id') else None,
+                    "request_id": request_id,
                     "path": request.url.path,
                     "method": request.method,
+                    "exception_type": type(exc).__name__,
                 }
             )
             return JSONResponse(
                 status_code=500,
                 content={
                     "error": "INTERNAL_SERVER_ERROR",
-                    "message": "An unexpected error occurred",
-                    "request_id": request.state.request_id if hasattr(request.state, 'request_id') else None,
+                    "message": "An unexpected error occurred. Please contact support if this persists.",
+                    "request_id": request_id,
+                    "status_code": 500,
                 },
             )
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware to log all HTTP requests and responses."""
+    """Middleware to log all HTTP requests and responses with structured logging."""
+    
+    # Paths to skip logging
+    SKIP_LOGGING_PATHS = {"/health", "/docs", "/redoc", "/openapi.json"}
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         request_id = request.state.request_id if hasattr(request.state, 'request_id') else str(uuid4())
         
-        # Skip logging for health checks
-        if request.url.path == "/health":
+        # Skip logging for certain paths
+        if request.url.path in self.SKIP_LOGGING_PATHS:
             return await call_next(request)
         
         start_time = time.time()
@@ -83,15 +112,26 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "request_id": request_id,
                 "method": request.method,
                 "path": request.url.path,
-                "client": request.client.host if request.client else None,
+                "query": dict(request.query_params) if request.query_params else None,
+                "client_ip": request.client.host if request.client else None,
+                "user_agent": request.headers.get("user-agent"),
             }
         )
         
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            logger.error(f"Request failed: {str(e)}", extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+            })
+            raise
         
         # Log response
         duration = time.time() - start_time
-        logger.info(
+        log_level = "info" if response.status_code < 400 else "warning"
+        getattr(logger, log_level)(
             f"{request.method} {request.url.path} {response.status_code}",
             extra={
                 "request_id": request_id,
@@ -120,6 +160,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         
         return response
 
@@ -130,7 +172,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp, requests_per_minute: int = 60):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
-        self.requests: dict = {}  # {client_ip: [(timestamp, count), ...]}
+        self.requests: Dict[str, list] = {}  # {client_ip: [timestamp, ...]}
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip rate limiting for certain paths
@@ -152,20 +194,36 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         
         # Check rate limit
         if len(self.requests[client_ip]) >= self.requests_per_minute:
-            logger.warning(f"Rate limit exceeded for {client_ip}")
+            request_id = request.state.request_id if hasattr(request.state, 'request_id') else str(uuid4())
+            logger.warning(
+                f"Rate limit exceeded for {client_ip}",
+                extra={
+                    "request_id": request_id,
+                    "client_ip": client_ip,
+                    "limit": self.requests_per_minute,
+                }
+            )
             return JSONResponse(
                 status_code=429,
                 content={
                     "error": "RATE_LIMIT_EXCEEDED",
                     "message": f"Rate limit of {self.requests_per_minute} requests per minute exceeded",
+                    "request_id": request_id if hasattr(request.state, 'request_id') else None,
+                    "status_code": 429,
                 }
             )
         
         # Add current request
         self.requests[client_ip].append(current_time)
         
-        # Clean up old clients
+        # Clean up old clients periodically
         if len(self.requests) > 1000:
-            self.requests = {k: v for k, v in self.requests.items() if v}
+            # Remove clients with no recent requests
+            current_time_check = time.time()
+            self.requests = {
+                k: v for k, v in self.requests.items()
+                if any(ts > current_time_check - 60 for ts in v)
+            }
         
         return await call_next(request)
+
