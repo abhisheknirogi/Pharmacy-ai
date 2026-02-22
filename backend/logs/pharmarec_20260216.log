@@ -1,0 +1,26 @@
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:145] - PharmaRec AI v1.0.0 FastAPI app initialized
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:145] - PharmaRec AI v1.0.0 FastAPI app initialized
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:146] - OpenAPI docs available at: /docs
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:146] - OpenAPI docs available at: /docs
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:34] - Initializing database...
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:34] - Initializing database...
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:36] - Database initialized successfully
+2026-02-16 20:54:52 - pharmarec.main - INFO - [main.py:36] - Database initialized successfully
+2026-02-16 21:02:36 - pharmarec.main - INFO - [main.py:39] - Shutting down application
+2026-02-16 21:02:36 - pharmarec.main - INFO - [main.py:39] - Shutting down application
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:145] - PharmaRec AI v1.0.0 FastAPI app initialized
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:145] - PharmaRec AI v1.0.0 FastAPI app initialized
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:146] - OpenAPI docs available at: /docs
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:146] - OpenAPI docs available at: /docs
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:34] - Initializing database...
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:34] - Initializing database...
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:36] - Database initialized successfully
+2026-02-16 21:02:39 - pharmarec.main - INFO - [main.py:36] - Database initialized successfully
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:145] - PharmaRec AI v1.0.0 FastAPI app initialized
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:145] - PharmaRec AI v1.0.0 FastAPI app initialized
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:146] - OpenAPI docs available at: /docs
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:146] - OpenAPI docs available at: /docs
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:34] - Initializing database...
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:34] - Initializing database...
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:36] - Database initialized successfully
+2026-02-16 21:02:43 - pharmarec.main - INFO - [main.py:36] - Database initialized successfully
